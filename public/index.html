@@ -484,6 +484,7 @@ let dragId = null;
 function attachDrag() {
   document.querySelectorAll('.track-card').forEach(card => {
     card.addEventListener('dragstart', e => {
+      dragId = parseInt(card.dataset.id);
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'copy';
       document.getElementById('ttDz').classList.add('over');

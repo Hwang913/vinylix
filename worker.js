@@ -30,14 +30,11 @@ export default {
             redirect_uri: env.REDIRECT_URI,
           }),
         });
-        if (!res.ok) {
-          const errText = await res.text();
-          return new Response(`Spotify error: ${res.status} - ${errText}`, { status: 200 });
-        }
+        if (!res.ok) return Response.redirect(`${url.origin}/?error=auth_failed`, 302);
         const data = await res.json();
         return Response.redirect(`${url.origin}/?access_token=${data.access_token}&refresh_token=${data.refresh_token}`, 302);
       } catch (e) {
-        return new Response(`Callback exception: ${e.message}`, { status: 200 });
+        return Response.redirect(`${url.origin}/?error=server_error`, 302);
       }
     }
 
