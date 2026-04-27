@@ -193,7 +193,7 @@ main{padding:32px;position:relative;z-index:1}
 </div>
 
 <header>
-  <div class="logo">🎵 VINYLIX</div>
+  <div class="logo" onclick="goHome()" style="cursor:pointer">🎵 VINYLIX</div>
   <div class="sw">
     <span class="si">🔍</span>
     <input type="text" id="searchInput" placeholder="곡, 아티스트 검색...">
@@ -286,6 +286,7 @@ main{padding:32px;position:relative;z-index:1}
 <script>
 var accessToken = null, refreshToken = null, deviceId = null;
 var player = null, curTrack = null, isPlaying = false, curGenre = 'all', queue = [];
+var trackMap = {};
 
 (function() {
   const params = new URLSearchParams(location.search);
@@ -460,17 +461,22 @@ function renderContent(filter='all', search='') {
 }
 
 function trackCard(t) {
+  trackMap[String(t.id)] = t;
   const [c1,c2] = t.color;
-  const thumb = `https://img.youtube.com/vi/${t.ytId || ''}/mqdefault.jpg`;
+  const art = t.albumArt
+    ? `<img src="${t.albumArt}" style="width:100%;height:100%;object-fit:cover;border-radius:12px">`
+    : `<div class="tart-fallback">${t.emoji || '🎵'}</div>`;
+  const badge = badgeG[t.genre] || 'linear-gradient(90deg,#a259ff,#4fc3f7)';
+  const label = genreInfo[t.genre]?.label || '검색 결과';
   return `<div class="track-card" draggable="true" data-id="${t.id}" id="card-${t.id}">
     <div class="tart" style="background:linear-gradient(135deg,${c1},${c2})">
-      <div class="tart-fallback">${t.emoji}</div>
+      ${art}
       <div class="play-overlay"><span>▶</span></div>
     </div>
     <div class="track-title">${t.title}</div>
     <div class="track-artist">${t.artist}</div>
     <div style="display:flex;align-items:center;justify-content:space-between">
-      <span class="badge" style="background:${badgeG[t.genre]}">${genreInfo[t.genre].label}</span>
+      <span class="badge" style="background:${badge}">${label}</span>
     </div>
     <div class="drag-hint">⬆ 턴테이블로 드래그</div>
   </div>`;
@@ -492,7 +498,7 @@ let dragId = null;
 function attachDrag() {
   document.querySelectorAll('.track-card').forEach(card => {
     card.addEventListener('dragstart', e => {
-      dragId = parseInt(card.dataset.id);
+      dragId = card.dataset.id;
       e.dataTransfer.setData('text/plain', String(dragId));
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'copy';
@@ -512,8 +518,12 @@ ttStage.addEventListener('drop', e => {
   e.preventDefault();
   document.getElementById('ttDz').classList.remove('over');
   if (dragId !== null) {
-    const t = tracks.find(x => x.id === dragId);
-    if (t) { curTrack = t; queue = tracks.filter(x => x.genre === t.genre); playSpotifyTrack(t.spotifyUri, t); }
+    const t = trackMap[dragId];
+    if (t) {
+      curTrack = t;
+      queue = t.genre && t.genre !== 'search' ? tracks.filter(x => x.genre === t.genre) : [];
+      playSpotifyTrack(t.spotifyUri, t);
+    }
     dragId = null;
   }
 });
@@ -527,16 +537,63 @@ function toggleTT() { document.getElementById('ttWin').classList.toggle('vis'); 
   document.addEventListener('mouseup', () => drag = false);
 })();
 
-// 검색 기능
+let searchTimer = null;
 document.getElementById('searchInput').addEventListener('input', e => {
-  renderContent(curGenre, e.target.value);
+  const q = e.target.value.trim();
+  clearTimeout(searchTimer);
+  if (!q) { renderContent(curGenre, ''); return; }
+  if (!accessToken) { renderContent(curGenre, q); return; }
+  searchTimer = setTimeout(() => searchSpotify(q), 400);
 });
 
+async function searchSpotify(q) {
+  const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=24`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+  const results = data.tracks.items.map((item, i) => {
+    const t = {
+      id: `sp_${i}`,
+      title: item.name,
+      artist: item.artists.map(a => a.name).join(', '),
+      genre: 'search',
+      emoji: '🎵',
+      color: ['#a259ff', '#4fc3f7'],
+      spotifyUri: item.uri,
+      albumArt: item.album.images[1]?.url || item.album.images[0]?.url || ''
+    };
+    trackMap[t.id] = t;
+    return t;
+  });
+  const html = results.length
+    ? `<div class="genre-section">
+        <div class="genre-header">
+          <span class="genre-icon">🔍</span>
+          <span class="genre-name">"${q}" 검색 결과</span>
+          <span class="genre-count">${results.length}곡</span>
+        </div>
+        <div class="track-grid">${results.map(trackCard).join('')}</div>
+      </div>`
+    : `<div class="no-results"><div style="font-size:3rem">🔍</div><p>"${q}" 검색 결과가 없어요</p></div>`;
+  document.getElementById('content').innerHTML = html;
+  attachDrag();
+}
+
+function goHome() {
+  document.getElementById('searchInput').value = '';
+  curGenre = 'all';
+  document.querySelectorAll('.gtab').forEach(t => t.classList.remove('active'));
+  document.querySelector('.gtab').classList.add('active');
+  renderContent('all', '');
+}
+
 function fg(g, el) {
+  document.getElementById('searchInput').value = '';
   curGenre = g;
   document.querySelectorAll('.gtab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  renderContent(curGenre, document.getElementById('searchInput').value);
+  renderContent(g, '');
 }
 
 renderContent();
