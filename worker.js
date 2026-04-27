@@ -14,24 +14,31 @@ export default {
     }
 
     if (url.pathname === '/api/callback') {
-      const code = url.searchParams.get('code');
-      if (!code) return Response.redirect('/?error=no_code', 302);
-      const credentials = btoa(`${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`);
-      const res = await fetch('https://accounts.spotify.com/api/token', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          redirect_uri: env.REDIRECT_URI,
-        }),
-      });
-      if (!res.ok) return Response.redirect('/?error=auth_failed', 302);
-      const data = await res.json();
-      return Response.redirect(`/?access_token=${data.access_token}&refresh_token=${data.refresh_token}`, 302);
+      try {
+        const code = url.searchParams.get('code');
+        if (!code) return Response.redirect('/?error=no_code', 302);
+        const credentials = btoa(`${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`);
+        const res = await fetch('https://accounts.spotify.com/api/token', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Basic ${credentials}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code,
+            redirect_uri: env.REDIRECT_URI,
+          }),
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          return new Response(`Spotify error: ${res.status} - ${errText}`, { status: 200 });
+        }
+        const data = await res.json();
+        return Response.redirect(`/?access_token=${data.access_token}&refresh_token=${data.refresh_token}`, 302);
+      } catch (e) {
+        return new Response(`Callback exception: ${e.message}`, { status: 200 });
+      }
     }
 
     if (url.pathname === '/api/refresh' && request.method === 'POST') {
