@@ -317,6 +317,10 @@ window.onSpotifyWebPlaybackSDKReady = () => {
     volume: 0.8
   });
   player.addListener('ready', ({ device_id }) => { deviceId = device_id; });
+  player.addListener('not_ready', () => { deviceId = null; });
+  player.addListener('initialization_error', ({ message }) => { alert('플레이어 초기화 오류: ' + message); });
+  player.addListener('authentication_error', ({ message }) => { alert('인증 오류: ' + message); });
+  player.addListener('account_error', () => { alert('Spotify Premium 계정이 필요합니다.'); });
   player.addListener('player_state_changed', state => {
     if (!state) return;
     const track = state.track_window.current_track;
@@ -347,11 +351,15 @@ async function playSpotifyTrack(spotifyUri, track) {
   document.getElementById('tonearm').classList.remove('on');
   setTimeout(async () => {
     document.getElementById('tonearm').classList.add('on');
-    await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+    const res = await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ uris: [spotifyUri] })
     });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: { message: res.status } }));
+      alert('재생 오류: ' + (err.error?.message || res.status));
+    }
   }, 900);
 }
 
@@ -392,8 +400,8 @@ document.getElementById('progBar').addEventListener('click', async e => {
 });
 
 const tracks = [
-  {id:1,title:'Supernova',artist:'aespa',genre:'kpop',emoji:'🌟',color:['#a259ff','#f06292'],spotifyUri:'spotify:track:6AaB2BpHLFTFkdcXpBVWVf'},
-  {id:2,title:'Ditto',artist:'NewJeans',genre:'kpop',emoji:'🌸',color:['#ff90b3','#ffd0e8'],spotifyUri:'spotify:track:3e0yk8INDZ0H6GJVIgkSQN'},
+  {id:1,title:'Supernova',artist:'aespa',genre:'kpop',emoji:'🌟',color:['#a259ff','#f06292'],spotifyUri:'spotify:track:2nPYPc5Ww4Nunu0FNCccPF'},
+  {id:2,title:'Ditto',artist:'NewJeans',genre:'kpop',emoji:'🌸',color:['#ff90b3','#ffd0e8'],spotifyUri:'spotify:track:3r8RuvgbX9s7ammBn07D3W'},
   {id:3,title:'APT.',artist:'ROSÉ & Bruno Mars',genre:'kpop',emoji:'🌹',color:['#ffd700','#ff6b35'],spotifyUri:'spotify:track:5vNRhkKd0yEAg8suGBpjeY'},
   {id:4,title:'Dynamite',artist:'BTS',genre:'kpop',emoji:'💥',color:['#00c9ff','#92fe9d'],spotifyUri:'spotify:track:0t1kP63rueHleOhQkYSXFY'},
   {id:5,title:'Not Like Us',artist:'Kendrick Lamar',genre:'hiphop',emoji:'🔥',color:['#c0392b','#e74c3c'],spotifyUri:'spotify:track:6nzxy2wXs6tLgDKxHFJTHm'},
@@ -485,6 +493,7 @@ function attachDrag() {
   document.querySelectorAll('.track-card').forEach(card => {
     card.addEventListener('dragstart', e => {
       dragId = parseInt(card.dataset.id);
+      e.dataTransfer.setData('text/plain', String(dragId));
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'copy';
       document.getElementById('ttDz').classList.add('over');
