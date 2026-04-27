@@ -547,10 +547,15 @@ document.getElementById('searchInput').addEventListener('input', e => {
 });
 
 async function searchSpotify(q) {
-  const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=24`, {
+  const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=24&market=from_token`, {
     headers: { Authorization: `Bearer ${accessToken}` }
   });
-  if (!res.ok) return;
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    console.error('Search error:', res.status, err);
+    if (res.status === 401) { accessToken = null; document.getElementById('loginScreen').style.display = 'flex'; }
+    return;
+  }
   const data = await res.json();
   const results = data.tracks.items.map((item, i) => {
     const t = {
