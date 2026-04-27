@@ -55,8 +55,6 @@ export default {
       });
     }
 
-    // 정적 파일 서빙 (index.html)
-    const assetUrl = new URL('/index.html', url.origin);
-    return fetch(assetUrl);
+    return env.ASSETS.fetch(request);
   }
 };
