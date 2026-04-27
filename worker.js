@@ -16,7 +16,7 @@ export default {
     if (url.pathname === '/api/callback') {
       try {
         const code = url.searchParams.get('code');
-        if (!code) return Response.redirect('/?error=no_code', 302);
+        if (!code) return Response.redirect(`${url.origin}/?error=no_code`, 302);
         const credentials = btoa(`${env.SPOTIFY_CLIENT_ID}:${env.SPOTIFY_CLIENT_SECRET}`);
         const res = await fetch('https://accounts.spotify.com/api/token', {
           method: 'POST',
@@ -35,7 +35,7 @@ export default {
           return new Response(`Spotify error: ${res.status} - ${errText}`, { status: 200 });
         }
         const data = await res.json();
-        return Response.redirect(`/?access_token=${data.access_token}&refresh_token=${data.refresh_token}`, 302);
+        return Response.redirect(`${url.origin}/?access_token=${data.access_token}&refresh_token=${data.refresh_token}`, 302);
       } catch (e) {
         return new Response(`Callback exception: ${e.message}`, { status: 200 });
       }
