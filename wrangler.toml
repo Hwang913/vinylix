@@ -2,5 +2,8 @@ name = "vinylix"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
+[vars]
+REDIRECT_URI = "https://vinylix.bg091370.workers.dev/api/callback"
+
 [site]
 bucket = "./public"
