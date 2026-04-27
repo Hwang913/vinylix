@@ -545,6 +545,15 @@ document.getElementById('searchInput').addEventListener('input', e => {
   if (!accessToken) { renderContent(curGenre, q); return; }
   searchTimer = setTimeout(() => searchSpotify(q), 400);
 });
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    clearTimeout(searchTimer);
+    if (!q) { renderContent(curGenre, ''); return; }
+    if (!accessToken) return;
+    searchSpotify(q);
+  }
+});
 
 async function searchSpotify(q) {
   const res = await fetch(`https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=24&market=from_token`, {
