@@ -573,26 +573,29 @@ function toggleTT() { document.getElementById('ttWin').classList.toggle('vis'); 
 (function(){
   const arm = document.getElementById('tonearm');
   const stage = document.getElementById('ttStage');
-  let startMouseAngle = 0, startArmAngle = 0;
+  let startX = 0, startAngle = 0;
 
-  function pivotAngle(e) {
-    const r = stage.getBoundingClientRect();
-    return Math.atan2(e.clientX - (r.left + 240), e.clientY - (r.top + 28)) * 180 / Math.PI;
+  function readAngle() {
+    const t = getComputedStyle(arm).transform;
+    if (!t || t === 'none') return -30;
+    const m = t.match(/matrix\((-?[\d.]+),\s*(-?[\d.]+)/);
+    return m ? Math.round(Math.atan2(parseFloat(m[2]), parseFloat(m[1])) * 180 / Math.PI) : -30;
   }
 
   arm.addEventListener('mousedown', e => {
     if (!deviceId || !curTrack || lpSeekDragging) return;
+    startAngle = readAngle();
+    startX = e.clientX;
     armDragging = true;
     arm.classList.add('arm-drag');
     arm.style.transition = 'none';
-    startMouseAngle = pivotAngle(e);
-    startArmAngle = parseFloat((arm.style.transform || '').replace(/[^-\d.]/g, '') || '0');
+    arm.style.transform = `rotate(${startAngle}deg)`;
     e.preventDefault();
   });
 
   document.addEventListener('mousemove', e => {
     if (!armDragging) return;
-    const newAngle = Math.max(-35, Math.min(25, startArmAngle + (pivotAngle(e) - startMouseAngle)));
+    const newAngle = Math.max(-35, Math.min(25, startAngle + (e.clientX - startX) * 0.2));
     arm.style.transform = `rotate(${newAngle}deg)`;
   });
 
@@ -601,8 +604,7 @@ function toggleTT() { document.getElementById('ttWin').classList.toggle('vis'); 
     armDragging = false;
     arm.classList.remove('arm-drag');
     if (!player) return;
-    const match = arm.style.transform.match(/-?[\d.]+/);
-    const angle = match ? parseFloat(match[0]) : 0;
+    const angle = parseFloat(arm.style.transform.replace(/[^-\d.]/g, '') || '0');
     if (angle < -15) {
       arm.style.transition = 'transform .9s cubic-bezier(.25,.46,.45,.94)';
       arm.style.transform = 'rotate(-30deg)';
