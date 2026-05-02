@@ -114,7 +114,7 @@ main{padding:32px;position:relative;z-index:1}
   box-shadow:0 8px 32px rgba(0,0,0,.8),inset 0 2px 4px rgba(255,255,255,.05)}
 .tt-ring{position:absolute;top:50%;left:50%;width:238px;height:238px;transform:translate(-50%,-50%);
   border-radius:50%;border:2px solid rgba(162,89,255,.2);pointer-events:none}
-.tt-lp{position:absolute;top:50%;left:50%;width:212px;height:212px;transform:translate(-50%,-50%);
+.tt-lp{position:absolute;top:50%;left:50%;width:212px;height:212px;transform:translate(-50%,-50%);cursor:crosshair;
   border-radius:50%;transition:background .5s;
   background:conic-gradient(from 0deg,#111 0deg,#1a1a1a 15deg,#0d0d0d 30deg,#1a1a1a 45deg,
     #0d0d0d 60deg,#111 75deg,#1a1a1a 90deg,#0d0d0d 120deg,#1a1a1a 150deg,
@@ -307,7 +307,7 @@ main{padding:32px;position:relative;z-index:1}
 var accessToken = null, refreshToken = null, deviceId = null;
 var player = null, curTrack = null, isPlaying = false, curGenre = 'all', queue = [];
 var trackMap = {};
-var armDragging = false;
+var armDragging = false, lpSeekDragging = false;
 var searchCache = {query:'',tracks:[],artists:[],albums:[],trackNext:null,artistNext:null,albumNext:null,trackTotal:0,artistTotal:0,albumTotal:0};
 
 (function() {
@@ -573,22 +573,29 @@ function toggleTT() { document.getElementById('ttWin').classList.toggle('vis'); 
 (function(){
   const arm = document.getElementById('tonearm');
   const stage = document.getElementById('ttStage');
+  let startMouseAngle = 0, startArmAngle = 0;
+
+  function pivotAngle(e) {
+    const r = stage.getBoundingClientRect();
+    return Math.atan2(e.clientX - (r.left + 240), e.clientY - (r.top + 28)) * 180 / Math.PI;
+  }
+
   arm.addEventListener('mousedown', e => {
-    if (!deviceId || !curTrack) return;
+    if (!deviceId || !curTrack || lpSeekDragging) return;
     armDragging = true;
     arm.classList.add('arm-drag');
     arm.style.transition = 'none';
+    startMouseAngle = pivotAngle(e);
+    startArmAngle = parseFloat((arm.style.transform || '').replace(/[^-\d.]/g, '') || '0');
     e.preventDefault();
   });
+
   document.addEventListener('mousemove', e => {
     if (!armDragging) return;
-    const r = stage.getBoundingClientRect();
-    // pivot in stage: (240, 28) based on tonearm right:12 width:106 origin:88px,18px
-    const cssAngle = Math.max(-35, Math.min(25,
-      Math.atan2(e.clientX - (r.left + 240), e.clientY - (r.top + 28)) * 180 / Math.PI + 27.3
-    ));
-    arm.style.transform = `rotate(${cssAngle}deg)`;
+    const newAngle = Math.max(-35, Math.min(25, startArmAngle + (pivotAngle(e) - startMouseAngle)));
+    arm.style.transform = `rotate(${newAngle}deg)`;
   });
+
   document.addEventListener('mouseup', async () => {
     if (!armDragging) return;
     armDragging = false;
@@ -608,6 +615,43 @@ function toggleTT() { document.getElementById('ttWin').classList.toggle('vis'); 
         arm.style.transition = 'transform .3s ease';
         if (!isPlaying) await player.resume();
       }
+    }
+  });
+})();
+
+(function(){
+  const lp = document.getElementById('ttLp');
+
+  function getProgress(e) {
+    const rect = lp.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    const r = Math.sqrt((e.clientX - cx) ** 2 + (e.clientY - cy) ** 2);
+    const outer = rect.width / 2 - 6;   // ~100px (outer groove)
+    const inner = rect.width * 0.16;     // ~34px (label edge)
+    return Math.max(0, Math.min(1, (outer - r) / (outer - inner)));
+  }
+
+  lp.addEventListener('mousedown', e => {
+    if (!player || !curTrack || armDragging) return;
+    lpSeekDragging = true;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!lpSeekDragging) return;
+    updateArmAngle(getProgress(e));
+  });
+
+  document.addEventListener('mouseup', async e => {
+    if (!lpSeekDragging) return;
+    lpSeekDragging = false;
+    const progress = getProgress(e);
+    const state = await player?.getCurrentState();
+    if (state) {
+      await player.seek(Math.floor(progress * state.duration));
+      updateArmAngle(progress);
+      if (!isPlaying) await player.resume();
     }
   });
 })();
