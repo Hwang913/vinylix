@@ -363,6 +363,26 @@ async function fetchUserProfile() {
   document.getElementById('userName').textContent = data.display_name;
   if (data.images && data.images[0])
     document.getElementById('userImg').src = data.images[0].url;
+  fetchTrackArt();
+}
+
+async function fetchTrackArt() {
+  try {
+    const ids = tracks.map(t => t.spotifyUri.split(':').pop()).join(',');
+    const res = await fetch(`https://api.spotify.com/v1/tracks?ids=${ids}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    let updated = false;
+    data.tracks.forEach((item, i) => {
+      if (item?.album?.images?.length) {
+        tracks[i].albumArt = item.album.images[1]?.url || item.album.images[0]?.url;
+        updated = true;
+      }
+    });
+    if (updated) renderContent(curGenre);
+  } catch(e) {}
 }
 
 window.onSpotifyWebPlaybackSDKReady = () => {
