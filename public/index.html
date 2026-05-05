@@ -333,6 +333,14 @@ var accessToken = null, refreshToken = null, deviceId = null;
 var player = null, curTrack = null, isPlaying = false, curGenre = 'all', queue = [];
 var trackMap = {};
 var armDragging = false, lpSeekDragging = false;
+var recentlyPlayed = [];
+(function(){
+  try {
+    const s = JSON.parse(localStorage.getItem('recentlyPlayed')||'[]');
+    recentlyPlayed = s;
+    s.forEach(t => { trackMap[String(t.id)] = t; });
+  } catch(e) {}
+})();
 var searchCache = {query:'',tracks:[],artists:[],albums:[],trackNext:null,artistNext:null,albumNext:null,trackTotal:0,artistTotal:0,albumTotal:0};
 
 (function() {
@@ -391,6 +399,7 @@ window.onSpotifyWebPlaybackSDKReady = () => {
 
 async function playSpotifyTrack(spotifyUri, track) {
   if (!deviceId) { alert('Spotify 플레이어 준비 중이에요. 잠시 후 다시 시도해주세요!'); return; }
+  addToRecent(track);
   const [c1, c2] = track.color;
   document.getElementById('ttLp').style.background =
     `conic-gradient(from 0deg,${c1}55 0deg,${c2}33 45deg,${c1}44 90deg,${c2}22 135deg,
@@ -474,6 +483,35 @@ const tracks = [
   {id:13,title:'Animals',artist:'Martin Garrix',genre:'edm',emoji:'🦁',color:['#12c2e9','#c471ed'],spotifyUri:'spotify:track:5AGTIWWLasdnpe5yvriQNA'},
   {id:14,title:'Electric Feel',artist:'MGMT',genre:'indie',emoji:'🌿',color:['#56ab2f','#a8e063'],spotifyUri:'spotify:track:6Xf1lisVrDNH0KGJF9IMkG'},
   {id:15,title:'Dog Days Are Over',artist:'Florence',genre:'indie',emoji:'🌻',color:['#f09819','#edde5d'],spotifyUri:'spotify:track:1YLJVmuzeM2YSUkCCaTNUB'},
+  // K-POP
+  {id:16,title:'Butter',artist:'BTS',genre:'kpop',emoji:'🧈',color:['#f9c700','#ff7b00'],spotifyUri:'spotify:track:1mWdTewIgB3gtBM3TOSFhB'},
+  {id:17,title:'How You Like That',artist:'BLACKPINK',genre:'kpop',emoji:'💗',color:['#ff2d78','#ff9a9e'],spotifyUri:'spotify:track:3yrSvpt2l1xhsV9Em88Pul'},
+  {id:18,title:'DNA',artist:'BTS',genre:'kpop',emoji:'🧬',color:['#1a6aff','#00d4ff'],spotifyUri:'spotify:track:2bCMxbBmcCBz8GQFHkPyJ7'},
+  {id:19,title:'Kill This Love',artist:'BLACKPINK',genre:'kpop',emoji:'🖤',color:['#e60026','#ff6b6b'],spotifyUri:'spotify:track:0u2P5u6lvoDfwTYjAADbn4'},
+  {id:20,title:'Hype Boy',artist:'NewJeans',genre:'kpop',emoji:'💙',color:['#74b9ff','#a29bfe'],spotifyUri:'spotify:track:0X2hKX9DrHVQBpNjz47bCo'},
+  // 힙합
+  {id:21,title:"God's Plan",artist:'Drake',genre:'hiphop',emoji:'🙏',color:['#b8860b','#ffd700'],spotifyUri:'spotify:track:6DCZcSspjsKoFjzjrWoCdn'},
+  {id:22,title:'HUMBLE.',artist:'Kendrick Lamar',genre:'hiphop',emoji:'🔱',color:['#1a1a1a','#8b0000'],spotifyUri:'spotify:track:7KXjTSCq5nL1LoYtL7XAwS'},
+  {id:23,title:'SICKO MODE',artist:'Travis Scott',genre:'hiphop',emoji:'🌵',color:['#0a0a0a','#ff4500'],spotifyUri:'spotify:track:2xLMifQCjDGFmkHkpNLD9h'},
+  {id:24,title:'Goosebumps',artist:'Travis Scott',genre:'hiphop',emoji:'🥶',color:['#6a0dad','#9b59b6'],spotifyUri:'spotify:track:6utmG0lkGolk4AmIRMmfEJ'},
+  // 록
+  {id:25,title:'Back in Black',artist:'AC/DC',genre:'rock',emoji:'⚡',color:['#1a1a1a','#ffcc00'],spotifyUri:'spotify:track:08mG3Y1vljYA6bvDt4Wqkj'},
+  {id:26,title:"Sweet Child O' Mine",artist:"Guns N' Roses",genre:'rock',emoji:'🌹',color:['#8b0000','#c0392b'],spotifyUri:'spotify:track:7snQQk1zcKl8gZ92AnueZW'},
+  {id:27,title:'Stairway to Heaven',artist:'Led Zeppelin',genre:'rock',emoji:'🏔️',color:['#2c1810','#8b4513'],spotifyUri:'spotify:track:5CQ30WqJwcep0pYcV4AMNc'},
+  {id:28,title:'Enter Sandman',artist:'Metallica',genre:'rock',emoji:'💀',color:['#1a1a1a','#555555'],spotifyUri:'spotify:track:6xvSFMPSjEPHuaWDQJgRpB'},
+  // 재즈
+  {id:29,title:'So What',artist:'Miles Davis',genre:'jazz',emoji:'🎺',color:['#1a1a2e','#4a4a6a'],spotifyUri:'spotify:track:3r4cQFbJMHbfJl4H2VVvpO'},
+  {id:30,title:'My Favorite Things',artist:'John Coltrane',genre:'jazz',emoji:'🎶',color:['#2c3e50','#7f8c8d'],spotifyUri:'spotify:track:1Imz4IPGrFGCMOrJUcEGzq'},
+  {id:31,title:'Autumn Leaves',artist:'Bill Evans Trio',genre:'jazz',emoji:'🍂',color:['#8b4513','#d4a76a'],spotifyUri:'spotify:track:3jBRLBqxuCvLvPLMrZlQiS'},
+  // EDM
+  {id:32,title:'Get Lucky',artist:'Daft Punk ft. Pharrell',genre:'edm',emoji:'🤖',color:['#c0392b','#e74c3c'],spotifyUri:'spotify:track:2TpxZ7JUBn3uw46aR7qd6V'},
+  {id:33,title:'Wake Me Up',artist:'Avicii',genre:'edm',emoji:'🌅',color:['#e67e22','#f39c12'],spotifyUri:'spotify:track:0nJW01T7XtvILxQgC5J7Wh'},
+  {id:34,title:'Titanium',artist:'David Guetta ft. Sia',genre:'edm',emoji:'⚙️',color:['#2980b9','#6dd5fa'],spotifyUri:'spotify:track:0tBSC7m8GmysRRkLCDpS4q'},
+  // 인디
+  {id:35,title:'Do I Wanna Know?',artist:'Arctic Monkeys',genre:'indie',emoji:'🐒',color:['#1c1c2e','#4a4a8a'],spotifyUri:'spotify:track:5FVd6KXrgO9B3JPmC8OPst'},
+  {id:36,title:'The Less I Know The Better',artist:'Tame Impala',genre:'indie',emoji:'🌀',color:['#e91e63','#9c27b0'],spotifyUri:'spotify:track:6K4t31amVTZDgR3sKmwUJJ'},
+  {id:37,title:'bad guy',artist:'Billie Eilish',genre:'indie',emoji:'😈',color:['#00c853','#003300'],spotifyUri:'spotify:track:2Fxmhks0bxGSBdJ92vM42m'},
+  {id:38,title:'Mr. Brightside',artist:'The Killers',genre:'indie',emoji:'🎰',color:['#ff6600','#ff9933'],spotifyUri:'spotify:track:7d8GetBfMQROiHCBBRQFMk'},
 ];
 
 const genreInfo = {
@@ -493,9 +531,31 @@ const badgeG = {
   indie:'linear-gradient(90deg,#56ab2f,#a8e063)',
 };
 
+function addToRecent(track) {
+  const id = `rp_${track.spotifyUri.split(':').pop()}`;
+  const t = {...track, id};
+  trackMap[id] = t;
+  recentlyPlayed = recentlyPlayed.filter(x => x.id !== id);
+  recentlyPlayed.unshift(t);
+  if (recentlyPlayed.length > 12) recentlyPlayed.length = 12;
+  try { localStorage.setItem('recentlyPlayed', JSON.stringify(recentlyPlayed)); } catch(e) {}
+}
+
 function renderContent(filter='all', search='') {
   const genres = filter === 'all' ? Object.keys(genreInfo) : [filter];
   let html = '', found = 0;
+
+  if (filter === 'all' && !search && recentlyPlayed.length) {
+    html += `<div class="genre-section">
+      <div class="genre-header">
+        <span class="genre-icon">🕐</span>
+        <span class="genre-name">최근 재생</span>
+        <span class="genre-count">${recentlyPlayed.length}곡</span>
+      </div>
+      <div class="track-grid">${recentlyPlayed.slice(0,6).map(trackCard).join('')}</div>
+    </div>`;
+  }
+
   genres.forEach(g => {
     let list = tracks.filter(t => t.genre === g);
     if (search) list = list.filter(t =>
