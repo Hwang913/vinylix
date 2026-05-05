@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VINYLIX</title>
+<script>if(localStorage.getItem('theme')==='light')document.documentElement.classList.add('light')</script>
 <script src="https://sdk.scdn.co/spotify-player.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -204,6 +205,26 @@ main{padding:32px;position:relative;z-index:1}
   background:transparent;color:var(--a1);cursor:pointer;font-size:.82rem;font-weight:600;
   transition:all .2s}
 .load-more-btn:hover{background:rgba(162,89,255,.15)}
+
+.theme-btn{background:none;border:1px solid var(--border);border-radius:50%;width:36px;height:36px;
+  cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0}
+.theme-btn:hover{border-color:var(--a1);background:rgba(162,89,255,.12)}
+
+/* Light mode */
+:root.light{--bg:#f0f0f8;--card:rgba(255,255,255,.9);--border:rgba(0,0,0,.1);--text:#1a1a2e;--sub:#7070a0}
+:root.light body::before{background:radial-gradient(circle,rgba(162,89,255,.06),transparent 70%)}
+:root.light body::after{background:radial-gradient(circle,rgba(79,195,247,.05),transparent 70%)}
+:root.light header{background:rgba(240,240,248,.95)}
+:root.light .sw input{background:rgba(0,0,0,.05)}
+:root.light .sec-title{background:linear-gradient(90deg,#1a1a2e,var(--sub));-webkit-background-clip:text;background-clip:text}
+:root.light #ttWin{background:rgba(248,248,255,.97);box-shadow:0 20px 60px rgba(0,0,0,.15),0 0 30px rgba(162,89,255,.08)}
+:root.light .tth{background:linear-gradient(90deg,rgba(162,89,255,.07),rgba(79,195,247,.05))}
+:root.light .tt-base{background:radial-gradient(circle at 40% 35%,#e0d8f5,#ece8ff)}
+:root.light .cb{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.12);color:var(--text)}
+:root.light .vol-row span{color:var(--sub)}
+:root.light .track-card{box-shadow:0 2px 16px rgba(0,0,0,.06)}
+:root.light #loginScreen{background:var(--bg)}
 </style>
 </head>
 <body>
@@ -226,6 +247,7 @@ main{padding:32px;position:relative;z-index:1}
       <img class="user-img" id="userImg" src="" alt="">
       <span class="user-name" id="userName"></span>
     </div>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()">☀️</button>
     <button class="tt-btn" onclick="toggleTT()">🎛️ 턴테이블 열기</button>
   </div>
 </header>
@@ -872,6 +894,13 @@ async function loadMore(type) {
   searchCache[nextKey] = data[cacheKey]?.next || null;
   renderSearchPage();
 }
+
+function toggleTheme() {
+  const light = document.documentElement.classList.toggle('light');
+  document.getElementById('themeBtn').textContent = light ? '🌙' : '☀️';
+  localStorage.setItem('theme', light ? 'light' : 'dark');
+}
+if (localStorage.getItem('theme') === 'light') document.getElementById('themeBtn').textContent = '🌙';
 
 function goHome() {
   document.getElementById('searchInput').value = '';
