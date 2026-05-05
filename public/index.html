@@ -39,7 +39,8 @@ header{position:sticky;top:0;z-index:100;background:rgba(10,10,20,.9);backdrop-f
   border:1px solid var(--border);border-radius:50px;color:var(--text);font-size:.9rem;outline:none;transition:border .2s}
 .sw input:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(162,89,255,.15)}
 .sw input::placeholder{color:var(--sub)}
-.si{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--sub)}
+.si{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--sub);cursor:pointer;z-index:1;transition:color .2s}
+.si:hover{color:var(--a1)}
 .header-right{margin-left:auto;display:flex;align-items:center;gap:12px}
 .user-info{display:flex;align-items:center;gap:8px}
 .user-img{width:32px;height:32px;border-radius:50%;border:2px solid var(--a1)}
@@ -217,8 +218,8 @@ main{padding:32px;position:relative;z-index:1}
 <header>
   <div class="logo" onclick="goHome()" style="cursor:pointer">🎵 VINYLIX</div>
   <div class="sw">
-    <span class="si">🔍</span>
-    <input type="text" id="searchInput" placeholder="곡, 아티스트 검색...">
+    <span class="si" id="searchBtn">🔍</span>
+    <input type="text" id="searchInput" placeholder="곡, 아티스트 검색..." autocomplete="off">
   </div>
   <div class="header-right">
     <div class="user-info" id="userInfo" style="display:none">
@@ -659,6 +660,17 @@ function toggleTT() { document.getElementById('ttWin').classList.toggle('vis'); 
     }
   });
 })();
+
+document.getElementById('searchInput').blur();
+
+function triggerSearch() {
+  const q = document.getElementById('searchInput').value.trim();
+  clearTimeout(searchTimer);
+  if (!q) { renderContent(curGenre, ''); return; }
+  if (!accessToken) return;
+  searchSpotify(q);
+}
+document.getElementById('searchBtn').addEventListener('click', triggerSearch);
 
 let searchTimer = null;
 document.getElementById('searchInput').addEventListener('input', e => {
